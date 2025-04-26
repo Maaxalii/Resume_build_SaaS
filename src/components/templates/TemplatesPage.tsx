@@ -1,49 +1,50 @@
-",
-      style: "creative",
-      industry: ["design", "arts", "media"],
-      colorScheme: "colorful",
-      popular: false,
-    },
-    {
-      id: "4",
-      name: "Executive Brief",
-      description: "Sophisticated design for senior professionals",
-      thumbnail:
-        "https://images.unsplash.com/photo-1586282384495-f35d1eb0ef93?w=400&q=80",
-      style: "professional",
-      industry: ["executive", "finance", "consulting"],
-      colorScheme: "dark",
-      popular: false,
-    },
-    {
-      id: "5",
-      name: "Tech Innovator",
-      description: "Modern layout for tech professionals",
-      thumbnail:
-        "https://images.unsplash.com/photo-1586282023783-90002a6e20b5?w=400&q=80",
-      style: "minimal",
-      industry: ["technology", "engineering", "data"],
-      colorScheme: "monochrome",
-      popular: true,
-    },
-    {
-      id: "6",
-      name: "Academic CV",
-      description: "Detailed layout for academic and research positions",
-      thumbnail:
-        "https://images.unsplash.com/photo-1586282023284-5abf4f994018?w=400&q=80",
-      style: "classic",
-      industry: ["education", "research", "science"],
-      colorScheme: "blue",
-      popular: false,
-    },
-  ];
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTemplates, Template } from "@/hooks/useTemplates";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Check, Filter, Lock, Loader2, Search } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+
+export default function TemplatesPage() {
+  const { templates, loading, userPlan } = useTemplates();
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null,
+  );
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [resumeTitle, setResumeTitle] = useState("");
+  const [filterStyle, setFilterStyle] = useState("all");
+  const [filterColor, setFilterColor] = useState("all");
+  const [filterIndustry, setFilterIndustry] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const filteredTemplates = templates.filter((template) => {
     const matchesStyle =
       filterStyle === "all" || template.style === filterStyle;
     const matchesColor =
-      filterColor === "all" || template.colorScheme === filterColor;
+      filterColor === "all" || template.color_scheme === filterColor;
     const matchesIndustry =
       filterIndustry === "all" || template.industry.includes(filterIndustry);
     const matchesSearch =
@@ -55,7 +56,7 @@
 
   const handleSelectTemplate = (template: Template) => {
     setSelectedTemplate(template);
-    onSelectTemplate(template);
+    setCreateDialogOpen(true);
   };
 
   const handlePreview = (template: Template) => {
@@ -63,12 +64,67 @@
     setPreviewOpen(true);
   };
 
+  const handleCreateResume = async () => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+
+    if (!selectedTemplate) return;
+    if (!resumeTitle.trim()) {
+      toast({
+        title: "Title required",
+        description: "Please enter a title for your resume",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create a new resume in the database
+      const response = await fetch("/api/resumes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: resumeTitle,
+          templateId: selectedTemplate.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create resume");
+      }
+
+      const data = await response.json();
+      setCreateDialogOpen(false);
+      navigate(`/editor/${data.id}`);
+    } catch (error) {
+      console.error("Error creating resume:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create resume. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full bg-background p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Choose a Template</h1>
-        <p className="text-muted-foreground">
-          Select a template to start building your professional resume
+    <div className="container py-12">
+      <div className="text-center space-y-4 mb-12">
+        <h1 className="text-3xl font-bold">Resume Templates</h1>
+        <p className="text-xl text-muted-foreground max-w-[42rem] mx-auto">
+          Choose from our collection of professionally designed templates for
+          any industry
         </p>
       </div>
 
@@ -84,7 +140,7 @@
             />
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <Select value={filterStyle} onValueChange={setFilterStyle}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Style" />
@@ -144,6 +200,7 @@
                 template={template}
                 onSelect={handleSelectTemplate}
                 onPreview={handlePreview}
+                userPlan={userPlan}
               />
             ))}
           </div>
@@ -159,6 +216,7 @@
                   template={template}
                   onSelect={handleSelectTemplate}
                   onPreview={handlePreview}
+                  userPlan={userPlan}
                 />
               ))}
           </div>
@@ -174,6 +232,7 @@
                   template={template}
                   onSelect={handleSelectTemplate}
                   onPreview={handlePreview}
+                  userPlan={userPlan}
                 />
               ))}
           </div>
@@ -189,6 +248,7 @@
                   template={template}
                   onSelect={handleSelectTemplate}
                   onPreview={handlePreview}
+                  userPlan={userPlan}
                 />
               ))}
           </div>
@@ -200,28 +260,80 @@
         onOpenChange={setPreviewOpen}
         template={selectedTemplate}
         onSelect={handleSelectTemplate}
+        userPlan={userPlan}
       />
+
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Resume</DialogTitle>
+            <DialogDescription>
+              Enter a title for your new resume using the{" "}
+              {selectedTemplate?.name} template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Input
+                placeholder="Resume Title"
+                value={resumeTitle}
+                onChange={(e) => setResumeTitle(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateResume}>Create Resume</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
+}
 
 interface TemplateCardProps {
   template: Template;
   onSelect: (template: Template) => void;
   onPreview: (template: Template) => void;
+  userPlan: string | null;
 }
 
-const TemplateCard = ({ template, onSelect, onPreview }: TemplateCardProps) => {
+const TemplateCard = ({
+  template,
+  onSelect,
+  onPreview,
+  userPlan,
+}: TemplateCardProps) => {
+  const isPremium = template.premium;
+  const canAccess =
+    !isPremium ||
+    (userPlan && (userPlan === "Pro" || userPlan === "Enterprise"));
+
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md">
+    <Card className="overflow-hidden transition-all hover:shadow-md relative">
       <div className="relative aspect-[3/4] overflow-hidden">
         <img
           src={template.thumbnail}
           alt={template.name}
-          className="w-full h-full object-cover transition-transform hover:scale-105"
+          className={`w-full h-full object-cover transition-transform hover:scale-105 ${!canAccess ? "opacity-50" : ""}`}
         />
         {template.popular && (
           <Badge className="absolute top-2 right-2 bg-primary">Popular</Badge>
+        )}
+        {isPremium && (
+          <Badge className="absolute top-2 left-2 bg-amber-500">Premium</Badge>
+        )}
+        {isPremium && !canAccess && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-background/80 p-3 rounded-full">
+              <Lock className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </div>
         )}
       </div>
       <CardContent className="p-4">
@@ -233,7 +345,7 @@ const TemplateCard = ({ template, onSelect, onPreview }: TemplateCardProps) => {
         </div>
         <div className="flex flex-wrap gap-2 mb-4">
           <Badge variant="outline">{template.style}</Badge>
-          <Badge variant="outline">{template.colorScheme}</Badge>
+          <Badge variant="outline">{template.color_scheme}</Badge>
           {template.industry.slice(0, 1).map((ind) => (
             <Badge key={ind} variant="outline">
               {ind}
@@ -251,8 +363,12 @@ const TemplateCard = ({ template, onSelect, onPreview }: TemplateCardProps) => {
           >
             Preview
           </Button>
-          <Button className="flex-1" onClick={() => onSelect(template)}>
-            Select
+          <Button
+            className="flex-1"
+            onClick={() => onSelect(template)}
+            disabled={!canAccess}
+          >
+            {!canAccess ? "Upgrade to Use" : "Select"}
           </Button>
         </div>
       </CardContent>
@@ -265,6 +381,7 @@ interface TemplatePreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   template: Template | null;
   onSelect: (template: Template) => void;
+  userPlan: string | null;
 }
 
 const TemplatePreviewDialog = ({
@@ -272,14 +389,23 @@ const TemplatePreviewDialog = ({
   onOpenChange,
   template,
   onSelect,
+  userPlan,
 }: TemplatePreviewDialogProps) => {
   if (!template) return null;
+
+  const isPremium = template.premium;
+  const canAccess =
+    !isPremium ||
+    (userPlan && (userPlan === "Pro" || userPlan === "Enterprise"));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{template.name}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {template.name}
+            {isPremium && <Badge className="bg-amber-500">Premium</Badge>}
+          </DialogTitle>
           <DialogDescription>{template.description}</DialogDescription>
         </DialogHeader>
 
@@ -301,9 +427,19 @@ const TemplatePreviewDialog = ({
                 <div className="text-muted-foreground">Style:</div>
                 <div>{template.style}</div>
                 <div className="text-muted-foreground">Color Scheme:</div>
-                <div>{template.colorScheme}</div>
+                <div>{template.color_scheme}</div>
                 <div className="text-muted-foreground">Best for:</div>
                 <div>{template.industry.join(", ")}</div>
+                {isPremium && (
+                  <>
+                    <div className="text-muted-foreground">Access:</div>
+                    <div>
+                      {canAccess
+                        ? "Available"
+                        : "Requires Pro or Enterprise plan"}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -335,14 +471,28 @@ const TemplatePreviewDialog = ({
                 onSelect(template);
                 onOpenChange(false);
               }}
+              disabled={!canAccess}
             >
-              Use This Template
+              {!canAccess
+                ? "Upgrade to Use This Template"
+                : "Use This Template"}
             </Button>
+
+            {!canAccess && (
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => {
+                  onOpenChange(false);
+                  window.location.href = "/subscription";
+                }}
+              >
+                View Subscription Plans
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
-export default TemplateSelector;
