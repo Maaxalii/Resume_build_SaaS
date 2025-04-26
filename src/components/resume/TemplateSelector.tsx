@@ -1,4 +1,79 @@
-",
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Check, Search } from "lucide-react";
+
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  thumbnail: string;
+  style: string;
+  industry: string[];
+  colorScheme: string;
+  popular: boolean;
+}
+
+interface TemplateSelectorProps {
+  onSelectTemplate: (template: Template) => void;
+}
+
+const TemplateSelector = ({ onSelectTemplate }: TemplateSelectorProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStyle, setFilterStyle] = useState("all");
+  const [filterColor, setFilterColor] = useState("all");
+  const [filterIndustry, setFilterIndustry] = useState("all");
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null,
+  );
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const templates: Template[] = [
+    {
+      id: "1",
+      name: "Modern Professional",
+      description: "Clean and professional layout for corporate roles",
+      thumbnail:
+        "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400&q=80",
+      style: "minimal",
+      industry: ["business", "marketing", "sales"],
+      colorScheme: "monochrome",
+      popular: true,
+    },
+    {
+      id: "2",
+      name: "Healthcare Specialist",
+      description: "Organized layout for healthcare professionals",
+      thumbnail:
+        "https://images.unsplash.com/photo-1586282391129-76a6b6a56b16?w=400&q=80",
+      style: "classic",
+      industry: ["healthcare", "medical", "nursing"],
+      colorScheme: "blue",
+      popular: true,
+    },
+    {
+      id: "3",
+      name: "Creative Portfolio",
+      description: "Vibrant design for creative professionals",
+      thumbnail:
+        "https://images.unsplash.com/photo-1586282384495-f35d1eb0ef93?w=400&q=80",
       style: "creative",
       industry: ["design", "arts", "media"],
       colorScheme: "colorful",
